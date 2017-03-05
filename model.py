@@ -8,6 +8,20 @@ from keras.models import Sequential
 from keras.layers import Flatten, Dense, Lambda, Cropping2D
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
+from sklearn.model_selection import train_test_split
+from sklearn.utils import shuffle
+
+
+# =============================================================================
+# Hyperparameters
+# =============================================================================
+input_img_shape = (160, 320, 3)
+validation_split = 0.2
+optimizer = 'adam'
+loss_function = 'mse'
+epochs = 10
+batch_size = 100
+
 
 # =============================================================================
 # Extract data from csv file and load all training images
@@ -17,66 +31,80 @@ recorded_log_file = recorded_data_path + 'driving_log.csv'
 recorded_image_path = recorded_data_path + 'IMG/'
 
 # Load training data
-images = []
-measurements = []
+samples = []
+with open(recorded_log_file) as csvfile:
+    reader = csv.reader(csvfile)
+    for line in reader:
+        samples.append(line)
+
+train_samples, validation_samples = train_test_split(samples, test_size=validation_split)
 
 
 def load_image(path):
-    """Load image from local path"""
+    """Load a single image from the recorded folder."""
     filename = path.split('/')[-1]
     current_path = recorded_image_path + filename
     return cv2.imread(current_path)
 
 
-with open(recorded_log_file, 'r') as f:
-    reader = csv.reader(f)
-    for row in reader:
-        steering_center = float(row[3])
+def generator(samples, batch_size=32):
+    """Generate batch sized data to feed the neural network"""
+    num_samples = len(samples)
+    while 1:  # Loop forever so the generator never terminates
+        shuffle(samples)
+        for offset in range(0, num_samples, batch_size):
+            batch_samples = samples[offset:offset + batch_size]
 
-        # Create adjusted steering measurements for the side camera images
-        correction = 0.2
-        steering_left = steering_center + correction
-        steering_right = steering_center - correction
+            # Load captured training data
+            images = []
+            angles = []
+            for batch_sample in batch_samples:
+                steering_center = float(batch_sample[3])
 
-        # Read in images from center, left and right cameras
-        img_center = load_image(row[0])
-        img_left = load_image(row[1])
-        img_right = load_image(row[2])
+                # Create adjusted steering measurements for the side camera images
+                correction = 0.2
+                steering_left = steering_center + correction
+                steering_right = steering_center - correction
 
-        # Add images and angles to data set
-        images += [img_center, img_left, img_right]
-        measurements += [steering_center, steering_left, steering_right]
+                # Read in images from center, left and right cameras
+                img_center = load_image(batch_sample[0])
+                img_left = load_image(batch_sample[1])
+                img_right = load_image(batch_sample[2])
+
+                images += [img_center, img_left, img_right]
+                angles += [steering_center, steering_left, steering_right]
+
+            # Produce flipped images
+            augmented_images, augmented_measurements = [], []
+            for image, measurement in zip(images, angles):
+                # Keep original image
+                augmented_images.append(image)
+                augmented_measurements.append(measurement)
+
+                # Add flipped image and corresponding measurement
+                augmented_images.append(cv2.flip(image, 1))
+                augmented_measurements.append(measurement * -1.0)
+
+            # Yield the data in batch sized junks
+            num_augmented_samples = len(augmented_images)
+            for chunk_offset in range(0, num_augmented_samples, batch_size):
+                X_train_chunk = augmented_images[chunk_offset:chunk_offset + batch_size]
+                y_train_chunk = augmented_measurements[chunk_offset:chunk_offset + batch_size]
+
+                # Convert training data into numpy arrays
+                X_train_chunk = np.array(X_train_chunk)
+                y_train_chunk = np.array(y_train_chunk)
+
+                yield shuffle(X_train_chunk, y_train_chunk)
 
 
-# =============================================================================
-# Augment training data
-# =============================================================================
-augmented_images, augmented_measurements = [], []
-for image, measurement in zip(images, measurements):
-    # Keep original image
-    augmented_images.append(image)
-    augmented_measurements.append(measurement)
-
-    # Add flipped image and corresponding measurement
-    augmented_images.append(cv2.flip(image, 1))
-    augmented_measurements.append(measurement * -1.0)
-
-# Convert training data to np array
-X_train = np.array(augmented_images)
-y_train = np.array(augmented_measurements)
+train_generator = generator(train_samples, batch_size=batch_size)
+validation_generator = generator(validation_samples, batch_size=batch_size)
 
 
 # =============================================================================
 # Build the neural network model
 # =============================================================================
-input_img_shape = (160, 320, 3)
-validation_split = 0.2
-optimizer = 'adam'
-loss_function = 'mse'
-epochs = 10
-batch_size = 100
-
-# Build model
 model = Sequential()
 model.add(Cropping2D(cropping=((50, 20), (0, 0)), input_shape=input_img_shape))
 model.add(Lambda(lambda x: x / 255.0 - 0.5))
@@ -99,8 +127,10 @@ model.compile(loss=loss_function, optimizer=optimizer)
 # =============================================================================
 # Train the model and output metrics
 # =============================================================================
-history = model.fit(X_train, y_train, validation_split=validation_split,
-                    shuffle=True, nb_epoch=epochs, batch_size=batch_size)
+history = model.fit_generator(train_generator, samples_per_epoch=len(train_samples) * 6,
+                              validation_data=validation_generator,
+                              nb_val_samples=len(validation_samples),
+                              nb_epoch=epochs)
 
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
