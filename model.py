@@ -19,32 +19,44 @@ input_img_shape = (160, 320, 3)
 validation_split = 0.2
 optimizer = 'adam'
 loss_function = 'mse'
-epochs = 10
-batch_size = 100
-
+epochs = 5
+batch_size = 50
 
 # =============================================================================
 # Extract data from csv file and load all training images
 # =============================================================================
-recorded_data_path = './data/recorded/'
-recorded_log_file = recorded_data_path + 'driving_log.csv'
-recorded_image_path = recorded_data_path + 'IMG/'
+data_folders = ['forward_round_1',
+                'forward_round_2',
+                'backward_round_1',
+                'backward_round_2']
 
-# Load training data
+# =============================================================================
+# Extract data from csv file and load all training images
+# =============================================================================
+recorded_base_path = './data/recorded/'
+recorded_log_file = 'driving_log.csv'
+recorded_image_path = '/IMG/'
+
 samples = []
-with open(recorded_log_file) as csvfile:
-    reader = csv.reader(csvfile)
-    for line in reader:
-        samples.append(line)
+for folder in data_folders:
+    log_file = recorded_base_path + folder + '/' + recorded_log_file
+
+    with open(log_file) as csvfile:
+        reader = csv.reader(csvfile)
+        for line in reader:
+            line[0] = recorded_base_path + folder + recorded_image_path + line[0].split('/')[-1]
+            line[1] = recorded_base_path + folder + recorded_image_path + line[1].split('/')[-1]
+            line[2] = recorded_base_path + folder + recorded_image_path + line[2].split('/')[-1]
+
+            samples.append(line)
+
 
 train_samples, validation_samples = train_test_split(samples, test_size=validation_split)
 
 
 def load_image(path):
     """Load a single image from the recorded folder."""
-    filename = path.split('/')[-1]
-    current_path = recorded_image_path + filename
-    return cv2.imread(current_path)
+    return cv2.imread(path)
 
 
 def generator(samples, batch_size=32):
@@ -82,8 +94,8 @@ def generator(samples, batch_size=32):
                 augmented_measurements.append(measurement)
 
                 # Add flipped image and corresponding measurement
-                augmented_images.append(cv2.flip(image, 1))
-                augmented_measurements.append(measurement * -1.0)
+                # augmented_images.append(cv2.flip(image, 1))
+                # augmented_measurements.append(measurement * -1.0)
 
             # Yield the data in batch sized junks
             num_augmented_samples = len(augmented_images)
@@ -127,7 +139,7 @@ model.compile(loss=loss_function, optimizer=optimizer)
 # =============================================================================
 # Train the model and output metrics
 # =============================================================================
-history = model.fit_generator(train_generator, samples_per_epoch=len(train_samples) * 6,
+history = model.fit_generator(train_generator, samples_per_epoch=len(train_samples) * 3,
                               validation_data=validation_generator,
                               nb_val_samples=len(validation_samples),
                               nb_epoch=epochs)
