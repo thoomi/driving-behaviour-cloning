@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from keras.models import Sequential
-from keras.layers import Flatten, Dense, Lambda, Cropping2D
+from keras.layers import Flatten, Dense, Lambda, Cropping2D, Dropout
 from keras.layers.convolutional import Convolution2D
 from keras.layers.pooling import MaxPooling2D
 from sklearn.model_selection import train_test_split
@@ -19,8 +19,8 @@ input_img_shape = (160, 320, 3)
 validation_split = 0.2
 optimizer = 'adam'
 loss_function = 'mse'
-epochs = 5
-batch_size = 50
+epochs = 3
+batch_size = 200
 
 # =============================================================================
 # Extract data from csv file and load all training images
@@ -28,7 +28,11 @@ batch_size = 50
 data_folders = ['forward_round_1',
                 'forward_round_2',
                 'backward_round_1',
-                'backward_round_2']
+                'backward_round_2',
+                'recover_from_left',
+                'recover_from_right',
+                'curve_left_after_bridge',
+                'curve_right_after_bridge']
 
 # =============================================================================
 # Extract data from csv file and load all training images
@@ -94,8 +98,8 @@ def generator(samples, batch_size=32):
                 augmented_measurements.append(measurement)
 
                 # Add flipped image and corresponding measurement
-                # augmented_images.append(cv2.flip(image, 1))
-                # augmented_measurements.append(measurement * -1.0)
+                augmented_images.append(cv2.flip(image, 1))
+                augmented_measurements.append(measurement * -1.0)
 
             # Yield the data in batch sized junks
             num_augmented_samples = len(augmented_images)
@@ -121,16 +125,18 @@ model = Sequential()
 model.add(Cropping2D(cropping=((50, 20), (0, 0)), input_shape=input_img_shape))
 model.add(Lambda(lambda x: x / 255.0 - 0.5))
 
-model.add(Convolution2D(6, 5, 5, activation='relu'))
-model.add(MaxPooling2D())
-
-model.add(Convolution2D(16, 5, 5, activation='relu'))
-model.add(MaxPooling2D())
+model.add(Convolution2D(3, 1, 1, activation='relu', subsample=(1, 1)))
+model.add(Convolution2D(24, 5, 5, activation='relu', subsample=(2, 2)))
+model.add(Convolution2D(36, 5, 5, activation='relu', subsample=(2, 2)))
+model.add(Convolution2D(48, 5, 5, activation='relu', subsample=(2, 2)))
+model.add(Convolution2D(64, 3, 3, activation='relu', subsample=(1, 1)))
+model.add(Convolution2D(64, 3, 3, activation='relu', subsample=(1, 1)))
 
 model.add(Flatten())
 
-model.add(Dense(120))
-model.add(Dense(84))
+model.add(Dense(100))
+model.add(Dense(50))
+model.add(Dense(10))
 model.add(Dense(1))
 
 model.compile(loss=loss_function, optimizer=optimizer)
@@ -139,18 +145,18 @@ model.compile(loss=loss_function, optimizer=optimizer)
 # =============================================================================
 # Train the model and output metrics
 # =============================================================================
-history = model.fit_generator(train_generator, samples_per_epoch=len(train_samples) * 3,
+history = model.fit_generator(train_generator, samples_per_epoch=len(train_samples) * 6,
                               validation_data=validation_generator,
                               nb_val_samples=len(validation_samples),
                               nb_epoch=epochs)
 
-plt.plot(history.history['loss'])
-plt.plot(history.history['val_loss'])
-plt.title('model mean squared error loss')
-plt.ylabel('mean squared error loss')
-plt.xlabel('epoch')
-plt.legend(['training set', 'validation set'], loc='upper right')
-plt.show()
+# plt.plot(history.history['loss'])
+# plt.plot(history.history['val_loss'])
+# plt.title('model mean squared error loss')
+# plt.ylabel('mean squared error loss')
+# plt.xlabel('epoch')
+# plt.legend(['training set', 'validation set'], loc='upper right')
+# plt.show()
 
 # =============================================================================
 # Save the final model and weights
