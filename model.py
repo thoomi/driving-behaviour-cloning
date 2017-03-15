@@ -16,7 +16,7 @@ from sklearn.utils import shuffle
 # Hyperparameters
 # =============================================================================
 input_img_shape = (160, 320, 3)
-validation_split = 0.2
+validation_split = 0.01
 optimizer = 'adam'
 loss_function = 'mse'
 epochs = 3
@@ -34,9 +34,6 @@ data_folders = ['forward_round_1',
                 'curve_left_after_bridge',
                 'curve_right_after_bridge']
 
-# =============================================================================
-# Extract data from csv file and load all training images
-# =============================================================================
 recorded_base_path = './data/recorded/'
 recorded_log_file = 'driving_log.csv'
 recorded_image_path = '/IMG/'
@@ -63,7 +60,7 @@ def load_image(path):
     return cv2.imread(path)
 
 
-def generator(samples, batch_size=32):
+def train_data_generator(samples, batch_size=32):
     """Generate batch sized data to feed the neural network"""
     num_samples = len(samples)
     while 1:  # Loop forever so the generator never terminates
@@ -114,8 +111,30 @@ def generator(samples, batch_size=32):
                 yield shuffle(X_train_chunk, y_train_chunk)
 
 
-train_generator = generator(train_samples, batch_size=batch_size)
-validation_generator = generator(validation_samples, batch_size=batch_size)
+def validation_data_generator(samples, batch_size=32):
+    """Generate batch sized data to validate the neural network"""
+    while 1:
+        num_samples = len(samples)
+        for offset in range(0, num_samples, batch_size):
+            batch_samples = samples[offset:offset + batch_size]
+
+            images = []
+            angles = []
+            for batch_sample in batch_samples:
+                img_center = load_image(batch_sample[0])
+                steering_center = float(batch_sample[3])
+
+                images.append(img_center)
+                angles.append(steering_center)
+
+            X_batch = np.array(images)
+            y_batch = np.array(angles)
+
+            yield (X_batch, y_batch)
+
+
+train_generator = train_data_generator(train_samples, batch_size=batch_size)
+validation_generator = validation_data_generator(validation_samples, batch_size=batch_size)
 
 
 # =============================================================================
@@ -133,6 +152,8 @@ model.add(Convolution2D(64, 3, 3, activation='relu', subsample=(1, 1)))
 model.add(Convolution2D(64, 3, 3, activation='relu', subsample=(1, 1)))
 
 model.add(Flatten())
+
+model.add(Dropout(0.5))
 
 model.add(Dense(100))
 model.add(Dense(50))
