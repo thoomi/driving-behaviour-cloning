@@ -16,7 +16,7 @@ This is the third project I am doing as part of Udacity's Self-Driving-Car Nanod
 [image2]: ./examples/recover_from_right.gif "Recovery Example"
 [image3]: ./examples/curve_left_after_bridge.gif "Curve Example"
 [image4]: ./examples/curve_right_after_bridge.gif "Curve Example"
-[image5]: ./examples/cnn-architecture.png "Network architecture"
+[image5]: ./examples/model_thumbnail.png "Network architecture"
 [image6]: ./examples/video.gif "Final result"
 
 # Report
@@ -32,6 +32,7 @@ You can find all project files in this [Github Repository](https://github.com/th
 
 My project includes the following files:
 * [model.py](https://github.com/thoomi/driving-behaviour-cloning/blob/master/model.py) containing the script to create and train the model
+* [generator.py](https://github.com/thoomi/driving-behaviour-cloning/blob/master/generator.py) containing the script to load and preprocess the training and validation data
 * [video.mp4](https://github.com/thoomi/driving-behaviour-cloning/blob/master/video.mp4) record of the model driving track 1 successfully
 * [drive.py](https://github.com/thoomi/driving-behaviour-cloning/blob/master/drive.py) for driving the car in autonomous mode
 * [model.h5](https://github.com/thoomi/driving-behaviour-cloning/blob/master/model.h5) containing a trained convolution neural network
@@ -63,7 +64,7 @@ The final model consists
 
 #### 2. Attempts to reduce overfitting in the model
 
-In order to prevent the model from overfitting, I introduced a dropout layer (model.py line 156) with a keep probability of 50% after the convolutional layers. This helps the model to generalize by not relying too much on every extracted feature. A second attempted to reduce overfitting, was to limit the training epochs to the range between 3-6 (model.py line 22).
+In order to prevent the model from overfitting, I introduced a dropout layer (model.py line 156) with a keep probability of 70% after the convolutional layers. This helps the model to generalize by not relying too much on every extracted feature. A second attempted to reduce overfitting, was to limit the training epochs to the range between 4-6 (model.py line 22).
 To validate the model, I used only 1% of the initial data because, in this project, a low validation loss does not necessarily mean a good performance on the track.
 
 #### 3. Model parameter tuning
@@ -100,11 +101,14 @@ My approach to collect the training data with the simulator was an iterative one
 
 #### 1. Solution Design Approach
 
-![Network architecture][image5]
+
+
 
 #### 2. Final Model Architecture
+[![Network architecture][image5]]( ./examples/model.png?raw=true)
 
-The final model architecture is basically the Nvidia architecture from their End to End Learning for Self-Driving Cars paper combined with an additional dropout layer right before the fully-connected layers.
+
+The final model architecture is basically the Nvidia architecture from their[ End to End Learning for Self-Driving Cars][paper01] paper combined with an additional dropout layer right before the fully-connected layers. Furthermore, I added a 1x1x3 convolution at the beginning of the network to let it figure out the best color options by itself.
 
 #### 3. Creation of the Training Set & Training Process
 
