@@ -25,7 +25,7 @@ def train_data_generator(samples, batch_size=32):
             for batch_sample in batch_samples:
                 steering_center = float(batch_sample[3])
 
-                if (steering_center < 0.2 and steering_center > -0.2 and random.random() < 0.7):
+                if (steering_center < 0.1 and steering_center > -0.1 and random.random() < 0.5):
                     continue
 
                 # Create adjusted steering measurements for the side camera images

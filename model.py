@@ -1,6 +1,5 @@
 """Udacity P3 - Behavioral Cloning"""
-import csv
-
+from data_loader import load_data_samples
 from generator import train_data_generator
 from generator import validation_data_generator
 from keras.models import Sequential
@@ -32,23 +31,7 @@ data_folders = ['forward_round_1',
                 'curve_left_after_bridge',
                 'curve_right_after_bridge']
 
-recorded_base_path = './data/recorded/'
-recorded_log_file = 'driving_log.csv'
-recorded_image_path = '/IMG/'
-
-samples = []
-for folder in data_folders:
-    log_file = recorded_base_path + folder + '/' + recorded_log_file
-
-    with open(log_file) as csvfile:
-        reader = csv.reader(csvfile)
-        for line in reader:
-            line[0] = recorded_base_path + folder + recorded_image_path + line[0].split('/')[-1]
-            line[1] = recorded_base_path + folder + recorded_image_path + line[1].split('/')[-1]
-            line[2] = recorded_base_path + folder + recorded_image_path + line[2].split('/')[-1]
-
-            samples.append(line)
-
+samples = load_data_samples(data_folders)
 
 train_samples, validation_samples = train_test_split(samples, test_size=validation_split)
 
@@ -63,12 +46,12 @@ model = Sequential()
 model.add(Cropping2D(cropping=((50, 20), (0, 0)), input_shape=input_img_shape))
 model.add(Lambda(lambda x: x / 255.0 - 0.5))
 
-model.add(Convolution2D(3, (1, 1), activation='relu', strides=(1, 1)))
-model.add(Convolution2D(24, (5, 5), activation='relu', strides=(2, 2)))
-model.add(Convolution2D(36, (5, 5), activation='relu', strides=(2, 2)))
-model.add(Convolution2D(48, (5, 5), activation='relu', strides=(2, 2)))
-model.add(Convolution2D(64, (3, 3), activation='relu', strides=(1, 1)))
-model.add(Convolution2D(64, (3, 3), activation='relu', strides=(1, 1)))
+model.add(Convolution2D(3, 1, 1, activation='relu', subsample=(1, 1)))
+model.add(Convolution2D(24, 5, 5, activation='relu', subsample=(2, 2)))
+model.add(Convolution2D(36, 5, 5, activation='relu', subsample=(2, 2)))
+model.add(Convolution2D(48, 5, 5, activation='relu', subsample=(2, 2)))
+model.add(Convolution2D(64, 3, 3, activation='relu', subsample=(1, 1)))
+model.add(Convolution2D(64, 3, 3, activation='relu', subsample=(1, 1)))
 
 model.add(Flatten())
 
@@ -85,10 +68,10 @@ model.compile(loss=loss_function, optimizer=optimizer)
 # =============================================================================
 # Train the model and output metrics
 # =============================================================================
-# history = model.fit_generator(train_generator, samples_per_epoch=batch_size * 100,
-#                               validation_data=validation_generator,
-#                               nb_val_samples=len(validation_samples),
-#                               nb_epoch=epochs)
+history = model.fit_generator(train_generator, samples_per_epoch=batch_size * 100,
+                              validation_data=validation_generator,
+                              nb_val_samples=len(validation_samples),
+                              nb_epoch=epochs)
 
 # plt.plot(history.history['loss'])
 # plt.plot(history.history['val_loss'])
@@ -104,7 +87,3 @@ model.compile(loss=loss_function, optimizer=optimizer)
 # =============================================================================
 model.save('model.h5')
 print('Model saved.')
-
-from keras.utils import plot_model
-
-plot_model(model, to_file='model.png', show_shapes=True)
