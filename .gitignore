@@ -1,3 +1,5 @@
 simulator/
 data/
 run1/
+
+__pycache__/

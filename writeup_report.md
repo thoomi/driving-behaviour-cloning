@@ -18,6 +18,9 @@ This is the third project I am doing as part of Udacity's Self-Driving-Car Nanod
 [image4]: ./examples/curve_right_after_bridge.gif "Curve Example"
 [image5]: ./examples/model_thumbnail.png "Network architecture"
 [image6]: ./examples/video.gif "Final result"
+[image7]: ./examples/steering_angle_histogram.png "Steering angle plot 1"
+[image8]: ./examples/steering_angle_per_datapoint.png "Steering angle plot 2"
+[image9]: ./examples/cropped_example.png "Cropped example"
 
 # Report
 ### Writeup & Project Files
@@ -77,8 +80,8 @@ My approach to collect the training data with the simulator was an iterative one
 
 * 2 x center line driving clockwise
 * 2 x center line driving counter-clockwise
-* 3 x attempts recovering from left
-* 3 x attempts recovering from right
+* 3 x recovering from left
+* 3 x recovering from right
 * 2 x driving the left curve after the bridge
 * 2 x driving the right curve after the bridge
 
@@ -101,18 +104,36 @@ My approach to collect the training data with the simulator was an iterative one
 
 #### 1. Solution Design Approach
 
+I started off with the standard and unmodified LeNet-5 model with the aim to record appropriate training data. As already stated, I recorded four full rounds driving track 1 (two clockwise and two counter-clockwise) as basic starting point. Afterwards, I trained and evaluated the model's performance by letting it drive in the simulators autonomous mode while observing its behavior. The next step was to look where the car went of the drivable ground and explicitly record data only for those specific sections.
 
+After countless attempts to record appropriate training data for the LeNet-5 model and failing all the time, I decided to switch my neural network to the Nvidia architecture. The new architecture proofed to be a very good choice for my recorded data. Even the first training session resulted in a fully driven round! Motivated by this success, I adjusted the model slightly to learn even better and faster with less data.
 
 
 #### 2. Final Model Architecture
 [![Network architecture][image5]]( ./examples/model.png?raw=true)
 
 
-The final model architecture is basically the Nvidia architecture from their[ End to End Learning for Self-Driving Cars][paper01] paper combined with an additional dropout layer right before the fully-connected layers. Furthermore, I added a 1x1x3 convolution at the beginning of the network to let it figure out the best color options by itself.
+The final model architecture is basically the Nvidia architecture from their [End to End Learning for Self-Driving Cars][paper01] paper combined with an additional dropout layer right before the fully-connected layers. Furthermore, I added a 1x1x3 convolution at the beginning of the network to let it figure out the best color options by itself. [[Paper04][paper04]]
 
 #### 3. Creation of the Training Set & Training Process
 
-I recorded the training data in steps. After each step, I trained and evaluated the model's performance by letting it drive in the simulators autonomous mode while observing its behavior.
+As stated in section "4. Appropriate training data", I collected training data iteratively while controlling the steering angle by mouse and driving at a speed of around 10 mp/h. See an exploratory summary below.
+
+![Steering angle per datapoint][image8]
+The image above shows the steering angle for all recorded data frames. You can view the x-axis as a time dimension. The peaks correspond to a higher steering angle while driving the curves on track 1.
+
+![Steering angle histogram][image7]
+The histogram shows the steering angles fitted into 20 bins. As we can clearly see, there is a very high rate of steering angles close to zero. Interpreting this graph could tell us to drop around 70 % of straight steering because we don't want the model not to steer of curves for example.
+
+
+![Cropped example][image9]
+
+The image above shows a cropped version of input images. We do this in order to prevent the model from being distracted of to much background.
+
+
+Additionally i used mirrored images
+
+Additionally i used the left and right camera images with an +- correction of 0.2
 
 ---
 
@@ -128,10 +149,15 @@ I recorded the training data in steps. After each step, I trained and evaluated 
 
 #### Papers
 [paper01]: http://images.nvidia.com/content/tegra/automotive/images/2016/solutions/pdf/end-to-end-dl-using-px.pdf
-[paper04]: https://www.cs.toronto.edu/~hinton/absps/JMLRdropout.pdf
+[paper02]: http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf
+[paper03]: https://www.cs.toronto.edu/~hinton/absps/JMLRdropout.pdf
+[paper04]: https://arxiv.org/pdf/1511.01064.pdf
 
-- [End to End Learning for Self-Driving Cars [Bojarski et al. 2016]][paper01]
-
+- [End to End Learning for Self-Driving Cars [Bojarski et al., 2016]][paper01]
+- [Gradient-Based Learning Applied to Document Recognition [LeCun et al., 1998]][paper02]
+- [Dropout:  A Simple Way to Prevent Neural Networks from
+Overfitting [Srivastava et al., 2014]][paper03]
+- [Color Space Transformation Network [Karargyris, 2015]][paper04]
 
 #### Blogs & Tutorials
 
