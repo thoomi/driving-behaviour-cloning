@@ -41,7 +41,9 @@ And as well an [on demand training data generator](https://github.com/thoomi/dri
 After all the car was able to drive autonomously around track 1.
 
 [image6]: ./examples/video.gif "Final result"
-![Final result drive][image6]
+
+[![Final result drive][image6]](https://github.com/thoomi/driving-behaviour-cloning/blob/master/video.mp4?raw=true)
+
 
 
 For a more detailed insight on the project please see the full [Writeup / Report](https://github.com/thoomi/driving-behaviour-cloning/blob/master/writeup_report.md).
